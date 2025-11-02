@@ -3,780 +3,293 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="shortcut icon" href="favicon.svg">
+  <link rel="shortcut icon" href="multimedia/favicon.png">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
-  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
+  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/
+  normalize.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
-  <title>Visualizador de Letras Sincronizadas</title>
   <style>
     @font-face {
-      font-family: 'Moderat-Bold';
-      src: url('Moderat-Bold.ttf') format('opentype');
+        font-family: 'Moderat';
+        src: url('font/Moderat-Bold.ttf') format('truetype');
+        font-weight: 700;
+        font-style: normal;
     }
-
+    @font-face {
+        font-family: 'Moderat';
+        src: url('font/Moderat-Medium.ttf') format('truetype');
+        font-weight: 500;
+        font-style: normal;
+    }
+    @font-face {
+        font-family: 'Moderat';
+        src: url('font/Moderat-Regular.ttf') format('truetype');
+        font-weight: 400;
+        font-style: normal;
+    }
+    @font-face {
+        font-family: 'Moderat';
+        src: url('font/Moderat-Light.ttf') format('truetype');
+        font-weight: 300;
+        font-style: normal;
+    }
     * {
-      font-family: 'Moderat-Bold', sans-serif;
+      font-family: 'Moderat', sans-serif;
+      font-weight: 400;
+      font-style: normal;
+      user-select: none; /* Evita selección */
     }
-
+    :root {
+      --green: #83DC5A;
+      --dark-blue: #203855;
+      --blue: #1D54C0;
+      --light-blue: #A0C3EA;
+      --extra-light-blue: #EDF5FF;
+    }
     body {
-      overflow: hidden;
-      background-color: black;
-      cursor: auto;
+        cursor: none; /* Oculta el cursor */
     }
-
-    .hide-cursor {
-        cursor: none;
-    }
-
-    .background-video {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -1;
-      object-fit: cover;
-      -webkit-backface-visibility: hidden;
-      backface-visibility: hidden;
-      transform: translate3d(0,0,0);
-    }
-
-    .countdown-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.9);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-
-    .countdown-number {
-      font-size: 15rem;
-      color: white;
-      font-weight: bold;
-      animation: pulse 0.5s ease-out;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(0.8); opacity: 0.5; }
-      50% { transform: scale(1.2); opacity: 1; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-
-    .lyrics-container {
-      width: 100%;
-      margin: auto;
-      padding: 0;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      box-sizing: border-box;
-      position: relative;
-      z-index: 10;
-    }
-
-    .current-line {
-      font-size: 3rem;
-      font-weight: bold;
-      color: #ffffff;
-      min-height: 2rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-transform: uppercase;
-      background-color: rgba(0, 0, 0);
-      padding: 0.2em 0.5em;
-      display: inline-block;
-      line-height: 1.2;
-      opacity: 1;
-      transform: translateY(0);
-      transition: opacity 0.3s ease-out, transform 0.3s ease-out, font-size 0.3s ease-out;
-    }
-
-    .current-line.hidden {
-      display: none;
-    }
-
-    .current-line.fade-out-up {
-      opacity: 0;
-      transform: translateY(-50px);
-      font-size: 2.5rem;
-    }
-
-    .next-line {
-      font-size: 2.1rem;
-      color: rgba(255, 255, 255);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-transform: uppercase;
-      background-color: rgba(0, 0, 0);
-      padding: 0.1em 0.3em;
-      display: inline-block;
-      line-height: 1.2;
-      margin-top: 0.5rem;
-      opacity: 0.6;
-      transition: opacity 0.3s ease-out, transform 0.3s ease-out, font-size 0.3s ease-out;
-    }
-
-    .next-line.hidden {
-      display: none;
-    }
-
-    #menuButton {
+    /* Clase helper para ocultar elementos */
+    .hidden {
         display: none;
-    }
-
-    .song-selector-overlay {
-      position: fixed;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 90%;
-      max-width: 400px;
-      background-color: rgba(0, 0, 0, 0.95);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 150;
-      flex-direction: column;
-      padding: 1rem;
-      box-sizing: border-box;
-      border-radius: 0.5rem;
-    }
-
-    .song-list-container {
-      max-height: calc(5 * (1rem + 0.5rem * 2 + 0.3rem));
-      overflow-y: auto;
-      width: 100%;
-      background-color: rgba(255, 255, 255, 0.1);
-      padding: 0.5rem;
-      border-radius: 0.5rem;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.5); /* Firefox */
-    }
-
-    .song-list-container::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    .song-list-container::-webkit-scrollbar-track {
-        background: rgba(0, 0, 0, 0.5);
-        border-radius: 10px;
-    }
-
-    .song-list-container::-webkit-scrollbar-thumb {
-        background-color: rgba(255, 255, 255, 0.3);
-        border-radius: 10px;
-        border: 2px solid rgba(0, 0, 0, 0.5);
-    }
-
-    .song-item {
-      padding: 0.5rem 0.75rem;
-      cursor: pointer;
-      border-radius: 0.25rem;
-      color: white;
-      font-size: 1rem;
-      margin-bottom: 0.3rem;
-      border: 2px solid transparent; 
-    }
-
-    .song-item:hover {
-      background-color: rgba(255, 255, 255, 0.15);
-    }
-
-    .active-song {
-      background-color: #3b82f6;
-    }
-    
-    .focused-song {
-      background-color: rgba(255, 255, 255, 0.1);
-      border: 2px solid #3b82f6;
-    }
-
-    .focused-song.active-song {
-        background-color: #2563eb; 
-    }
-
-    .player-controls {
-        display: none;
-    }
-
-    .initial-logo-container {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: black;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 100;
-    }
-
-    .initial-logo-container.hidden {
-        z-index: -100;
-    }
-
-    .song-info-display {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 3rem;
-      font-weight: bold;
-      color: white;
-      text-align: center;
-      z-index: 100;
-      background-color: black;
-      padding: 0.2em 0.5em;
-      display: inline-block;
-      line-height: 1.2;
-      text-transform: uppercase;
     }
   </style>
+  <title>Tiempos | ibblaverdad</title>
 </head>
-<body class="bg-gray-900 text-white hide-cursor">
-  <div id="initialLogoContainer" class="initial-logo-container">
-    <img src="multimedia/logo-5l.svg" alt="Logo" class="w-1/2 max-w-sm">
+<body class="bg-black">
+
+  <div id="slider-container" class="h-screen w-screen bg-black">
+
+    <div id="image-slide-container" class="h-full w-full flex items-center justify-center hidden">
+      <img id="slider-image" src="" alt="Slider" class="max-h-full max-w-full object-contain">
+    </div>
+
+    <div id="song-slide-container" class="h-full w-full relative hidden">
+      
+      <video id="song-video" class="absolute top-0 left-0 w-full h-full object-cover" loop muted playsinline></video>
+      <audio id="song-audio"></audio>
+
+      <div class="absolute top-0 left-0 w-full flex justify-center pt-8 z-10">
+        <p id="lyric-text" class="text-white text-4xl lg:text-5xl font-bold bg-black bg-opacity-70 px-6 py-3 rounded-lg text-center uppercase" style="text-shadow: 2px 2px 4px #000;"></p>
+      </div>
+    </div>
+
   </div>
-
-  <video id="backgroundVideo" class="background-video" autoplay muted loop></video>
-
-  <div id="songSelectorOverlay" class="song-selector-overlay hidden">
-    <div id="songList" class="song-list-container"></div>
-  </div>
-
-  <div class="lyrics-container">
-    <div id="currentLine" class="current-line hidden"></div>
-    <div id="nextLine" class="next-line hidden"></div>
-  </div>
-
-  <div id="countdownOverlay" class="countdown-overlay hidden">
-    <div id="countdownNumber" class="countdown-number"></div>
-  </div>
-
-  <audio id="audioPlayer"></audio>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const body = document.body;
-      const songSelectorOverlay = document.getElementById('songSelectorOverlay');
-      const songList = document.getElementById('songList');
-      const currentLine = document.getElementById('currentLine');
-      const nextLine = document.getElementById('nextLine');
-      const audioPlayer = document.getElementById('audioPlayer');
-      const countdownOverlay = document.getElementById('countdownOverlay');
-      const countdownNumber = document.getElementById('countdownNumber');
-      const backgroundVideo = document.getElementById('backgroundVideo');
-      const initialLogoContainer = document.getElementById('initialLogoContainer');
+      
+      const slides = [
+        { type: 'image', src: 'multimedia/hola.png' },
+        { type: 'image', src: 'multimedia/orar.png' },
+        {
+          type: 'song',
+          mp3: 'multimedia/Yo tengo un amigo que me ama.mp3',
+          txt: 'multimedia/Yo tengo un amigo que me ama.txt',
+          video: 'multimedia/fondo2.mp4',
+          lyrics: []
+        },
+        {
+          type: 'song',
+          mp3: 'multimedia/Mi amigo es Jesús.mp3',
+          txt: 'multimedia/Mi amigo es Jesús.txt',
+          video: 'multimedia/fondo1.mp4',
+          lyrics: []
+        },
+        { type: 'image', src: 'multimedia/bye.png' }
+      ];
 
-      let songs = [];
-      let currentSongIndex = -1;
-      let lyricsData = [];
-      let isMuted = false;
-      let isCountingDown = false;
-      let countdownInterval = null;
-      let audioContext = null;
-      let oscillator = null;
-      let gainNode = null;
-      let lastLyricIndex = -1;
-      let focusedSongIndex = 0; 
+      const maxIndex = slides.length - 1;
+      let currentIndex = 0;
+      let firstInteraction = true;
+      let currentLyricLine = null; 
 
-      async function loadResources() {
-        try {
-          const songsResponse = await fetch('songs/songs.json');
-          if (!songsResponse.ok) {
-            throw new Error(`HTTP error! status: ${songsResponse.status}`);
-          }
-          const songsData = await songsResponse.json();
-          songs = songsData.canciones.sort((a, b) => a.titulo.localeCompare(b.titulo));
-
-          displaySongs();
-          updateFocus(); 
-        } catch (error) {
-          console.error('Error al cargar recursos:', error);
-          songList.innerHTML = '<div class="text-red-500">Error al cargar los recursos. Verifica la consola para más detalles.</div>';
-        }
-      }
-
-      function displaySongs() {
-        songList.innerHTML = '';
-        songs.forEach((song, index) => {
-          const songItem = document.createElement('div');
-          songItem.className = 'song-item';
-          songItem.textContent = song.titulo;
-          songItem.dataset.index = index; 
-          songItem.addEventListener('click', () => {
-            selectSong(parseInt(songItem.dataset.index));
-            songSelectorOverlay.classList.add('hidden');
-            body.classList.add('hide-cursor');
-            initialLogoContainer.classList.add('hidden');
-          });
-          songList.appendChild(songItem);
-        });
-        if (currentSongIndex !== -1) {
-          const activeItem = songList.querySelector(`[data-index="${currentSongIndex}"]`);
-          if (activeItem) {
-            activeItem.classList.add('active-song');
-          }
-        }
-      }
-
-      async function selectSong(index) {
-        currentSongIndex = index;
-        focusedSongIndex = index; 
-        audioPlayer.pause();
-        audioPlayer.currentTime = 0;
-        currentLine.textContent = '';
-        currentLine.classList.add('hidden');
-        nextLine.textContent = '';
-        nextLine.classList.add('hidden');
-        lastLyricIndex = -1;
-
-        clearInterval(countdownInterval);
-
-        if (oscillator) {
-            oscillator.stop();
-            oscillator = null;
-        }
-        countdownOverlay.classList.add('hidden');
-        isCountingDown = false;
-
-        const songItems = document.querySelectorAll('.song-item');
-        songItems.forEach(item => item.classList.remove('active-song'));
-
-        const activeItemInFilteredList = songList.querySelector(`[data-index="${index}"]`);
-        if (activeItemInFilteredList) {
-          activeItemInFilteredList.classList.add('active-song');
-        }
-
-        const selectedSong = songs[index];
-
-        if (selectedSong.fondo) {
-            backgroundVideo.src = selectedSong.fondo;
-            backgroundVideo.load();
-            backgroundVideo.play();
-            backgroundVideo.style.display = 'block';
-        } else {
-            backgroundVideo.style.display = 'none';
-        }
-
-        try {
-          const txt_link = `songs/${selectedSong.titulo}.txt`;
-          const response = await fetch(txt_link);
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          const text = await response.text();
-          lyricsData = parseLyrics(text);
-
-          startCountdown();
-        } catch (error) {
-          console.error('Error al cargar la letra:', error);
-          currentLine.textContent = 'ERROR AL CARGAR LA LETRA.';
-          currentLine.classList.remove('hidden');
-          nextLine.classList.add('hidden');
-        }
-      }
+      const imageSlideContainer = document.getElementById('image-slide-container');
+      const sliderImage = document.getElementById('slider-image');
+      
+      const songSlideContainer = document.getElementById('song-slide-container');
+      const songVideo = document.getElementById('song-video');
+      const songAudio = document.getElementById('song-audio');
+      const lyricText = document.getElementById('lyric-text');
 
       function parseLyrics(text) {
-        const lines = text.split('\n');
+        const lines = text.split('\n').slice(1);
         const lyrics = [];
-        let bpm = 120;
+        const regex = /\[(\d{2}):(\d{2})\.(\d{2})\](.*)/;
 
-        const metadataLines = lines.filter(line => line.startsWith('[') && line.endsWith(']'));
-        metadataLines.forEach(line => {
-          if (line.toLowerCase().includes('[bpm:')) {
-            const bpmMatch = line.match(/\[bpm:\s*(\d+)\]/i);
-            if (bpmMatch) bpm = parseInt(bpmMatch[1]);
+        for (const line of lines) {
+          const match = line.match(regex);
+          if (match) {
+            const minutes = parseInt(match[1], 10);
+            const seconds = parseInt(match[2], 10);
+            const hundredths = parseInt(match[3], 10);
+            const text = match[4].trim();
+
+            if (text) { 
+              const time = (minutes * 60) + seconds + (hundredths / 100);
+              lyrics.push({ time, text });
+            }
           }
-        });
-
-        lines.forEach(line => {
-          const timeMatch = line.match(/^\[(\d{2}):(\d{2})\.(\d{2})\](.*)/);
-          if (timeMatch) {
-            const minutes = parseInt(timeMatch[1]);
-            const seconds = parseInt(timeMatch[2]);
-            const milliseconds = parseInt(timeMatch[3]);
-            const text = timeMatch[4].trim();
-
-            const timeInSeconds = minutes * 60 + seconds + milliseconds / 100;
-            lyrics.push({
-              time: timeInSeconds,
-              text: text,
-              rawText: line
-            });
-          }
-        });
-
-        lyrics.sort((a, b) => a.time - b.time);
-
-        if (lyrics.length > 0 && (lyrics[0].text.trim() === '' || lyrics[0].rawText.toLowerCase().includes('[bpm:'))) {
-            lyrics.shift();
         }
-        if (lyrics.length > 0 && lyrics[0].rawText.match(/^\[\d{2}:\d{2}\.\d{2}\].* - .*/)) {
-            lyrics.shift();
-        }
-
-        if (lyrics.length > 0) {
-          lyrics[0].bpm = bpm;
-        }
-
         return lyrics;
       }
 
-      function startCountdown() {
-        isCountingDown = true;
-        countdownOverlay.classList.remove('hidden');
-
-        const bpm = lyricsData[0]?.bpm || 120;
-        const interval = 60 / bpm * 1000;
-
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
-
-        function playStickSound() {
-            if (oscillator) {
-                oscillator.stop();
-            }
-            oscillator = audioContext.createOscillator();
-            gainNode = audioContext.createGain();
-
-            oscillator.type = 'sine';
-            oscillator.frequency.value = 1200;
-
-            gainNode.gain.setValueAtTime(0.7, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.05);
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.1);
-        }
-
-        let count = 4;
-        countdownNumber.textContent = count;
-        playStickSound();
-
-        countdownInterval = setInterval(() => {
-          count--;
-
-          if (count > 0) {
-            playStickSound();
-            countdownNumber.textContent = count;
-          } else {
-            clearInterval(countdownInterval);
-            if (oscillator) {
-                oscillator.stop();
-                oscillator = null;
-            }
-            countdownOverlay.classList.add('hidden');
-            isCountingDown = false;
-
-            startPlayback();
+      async function loadAllLyrics() {
+        const promises = slides.map((slide, index) => {
+          if (slide.type === 'song') {
+            return fetch(slide.txt)
+              .then(response => response.text())
+              .then(text => {
+                slides[index].lyrics = parseLyrics(text);
+              })
+              .catch(err => console.error(`Error cargando letra: ${slide.txt}`, err));
           }
-        }, interval);
+          return Promise.resolve();
+        });
+        await Promise.all(promises);
+        console.log("Todas las letras cargadas y parseadas.");
       }
 
-      function startPlayback() {
-        const selectedSong = songs[currentSongIndex];
-        audioPlayer.src = `songs/${selectedSong.titulo}.mp3`;
-        audioPlayer.play();
-        audioPlayer.removeEventListener('timeupdate', updateLyrics);
-        audioPlayer.addEventListener('timeupdate', updateLyrics);
-        audioPlayer.removeEventListener('ended', showLobby);
-        audioPlayer.addEventListener('ended', showLobby);
+      const bodyElement = document.documentElement;
+      function goFullScreen() {
+        if (document.fullscreenElement || document.webkitFullscreenElement) return;
+        if (bodyElement.requestFullscreen) bodyElement.requestFullscreen();
+        else if (bodyElement.mozRequestFullScreen) bodyElement.mozRequestFullScreen();
+        else if (bodyElement.webkitRequestFullscreen) bodyElement.webkitRequestFullscreen();
+        else if (bodyElement.msRequestFullscreen) bodyElement.msRequestFullscreen();
+      }
+      function exitFullScreen() {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) return;
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        else if (document.msExitFullscreen) document.msExitFullscreen();
       }
 
+      function renderSlide(index) {
+        const slide = slides[index];
+
+        songAudio.pause();
+        songVideo.pause();
+        
+        if (slide.type === 'image') {
+          imageSlideContainer.classList.remove('hidden');
+          songSlideContainer.classList.add('hidden');
+          sliderImage.src = slide.src;
+
+        } else if (slide.type === 'song') {
+          songSlideContainer.classList.remove('hidden');
+          imageSlideContainer.classList.add('hidden');
+          songVideo.src = slide.video;
+          songAudio.src = slide.mp3;
+          songAudio.currentTime = 0; 
+          
+          // --- *** CAMBIO 2 (A): Ocultar el texto por defecto *** ---
+          lyricText.classList.add('hidden'); // Asegura que esté oculto al cambiar de slide
+          currentLyricLine = null; // Resetea el estado a "oculto"
+          
+          songVideo.play();
+          songAudio.play();
+        }
+      }
+
+      // --- *** CAMBIO 2 (B): Lógica modificada para ocultar/mostrar el <p> *** ---
       function updateLyrics() {
-        if (!lyricsData.length || isCountingDown) return;
+        const currentTime = songAudio.currentTime;
+        const currentSlide = slides[currentIndex];
+        
+        if (currentSlide.type !== 'song' || songAudio.paused) return;
 
-        const currentTime = audioPlayer.currentTime;
-        let currentLyricIndex = -1;
-
-        for (let i = 0; i < lyricsData.length; i++) {
-          if (lyricsData[i].time <= currentTime) {
-            currentLyricIndex = i;
-          } else {
+        const lyrics = currentSlide.lyrics;
+        
+        let activeLyric = null;
+        for (let i = lyrics.length - 1; i >= 0; i--) {
+          if (currentTime >= lyrics[i].time) {
+            activeLyric = lyrics[i];
             break;
           }
         }
 
-        if (currentLyricIndex !== -1 && currentLyricIndex !== lastLyricIndex) {
-          if (lastLyricIndex !== -1) {
-            currentLine.classList.add('fade-out-up');
-            setTimeout(() => {
-              currentLine.textContent = lyricsData[currentLyricIndex].text;
-              currentLine.classList.remove('fade-out-up'); 
-              currentLine.classList.remove('hidden');
-
-              if (currentLyricIndex < lyricsData.length - 1) {
-                nextLine.textContent = lyricsData[currentLyricIndex + 1].text;
-                nextLine.classList.remove('hidden');
-              } else {
-                nextLine.textContent = '';
-                nextLine.classList.add('hidden');
-              }
-            }, 50); 
+        if (activeLyric) {
+          // REGLA DE 6 SEGUNDOS
+          if (currentTime - activeLyric.time < 6.0) {
+            // Mostrar la letra
+            if (currentLyricLine !== activeLyric.text) {
+              lyricText.textContent = activeLyric.text;
+              lyricText.classList.remove('hidden'); // <-- MOSTRAR el elemento
+              currentLyricLine = activeLyric.text;
+            }
           } else {
-            currentLine.textContent = lyricsData[currentLyricIndex].text;
-            currentLine.classList.remove('hidden');
-            if (currentLyricIndex < lyricsData.length - 1) {
-              nextLine.textContent = lyricsData[currentLyricIndex + 1].text;
-              nextLine.classList.remove('hidden');
-            } else {
-              nextLine.textContent = '';
-              nextLine.classList.add('hidden');
+            // Pasaron más de 6s. Ocultar.
+            if (currentLyricLine !== null) { // Usamos 'null' para saber si está oculto
+              lyricText.classList.add('hidden'); // <-- OCULTAR el elemento
+              currentLyricLine = null;
             }
           }
-
-          lastLyricIndex = currentLyricIndex;
-
-        } else if (currentLyricIndex === -1 && lastLyricIndex !== -1) {
-          currentLine.textContent = '';
-          currentLine.classList.add('hidden');
-          currentLine.classList.remove('fade-out-up'); 
-          nextLine.textContent = '';
-          nextLine.classList.add('hidden');
-          lastLyricIndex = -1;
-        }
-      }
-
-      function toggleMute() {
-        isMuted = !isMuted;
-        audioPlayer.muted = isMuted;
-      }
-
-      function togglePlayPause() {
-        if (currentSongIndex === -1) return; 
-        if (audioPlayer.paused) {
-          audioPlayer.play();
         } else {
-          audioPlayer.pause();
-        }
-      }
-
-      function toggleFullscreen() {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(err => {
-            console.error(`Error al intentar entrar en modo pantalla completa: ${err.message} (${err.name})`);
-          });
-        } else {
-          if (document.exitFullscreen) {
-            document.exitFullscreen();
+          // Aún no hay letra (inicio). Ocultar.
+          if (currentLyricLine !== null) {
+            lyricText.classList.add('hidden'); // <-- OCULTAR el elemento
+            currentLyricLine = null;
           }
         }
       }
 
-      // CAMBIO: Funciones increaseVolume y decreaseVolume eliminadas.
-      // Ya no son necesarias por la nueva lógica.
+      async function initializeApp() {
+        await loadAllLyrics();
+        songAudio.addEventListener('timeupdate', updateLyrics);
 
-      function showLobby() {
-        audioPlayer.pause();
-        audioPlayer.currentTime = 0;
-        clearInterval(countdownInterval);
-        if (oscillator) {
-            oscillator.stop();
-            oscillator = null;
-        }
-        currentLine.textContent = '';
-        currentLine.classList.add('hidden');
-        currentLine.classList.remove('fade-out-up'); 
-        nextLine.textContent = '';
-        nextLine.classList.add('hidden');
-        countdownOverlay.classList.add('hidden');
-        initialLogoContainer.classList.remove('hidden');
-        songSelectorOverlay.classList.add('hidden');
-        body.classList.remove('hide-cursor');
-        backgroundVideo.style.display = 'none';
-        currentSongIndex = -1;
-        focusedSongIndex = 0; 
-        displaySongs();
-      }
-      
-      function updateFocus() {
-        if (songs.length === 0) return;
-        document.querySelectorAll('.song-item').forEach(item => item.classList.remove('focused-song'));
-        const itemToFocus = songList.querySelector(`[data-index="${focusedSongIndex}"]`);
-        if (itemToFocus) {
-          itemToFocus.classList.add('focused-song');
-          itemToFocus.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        }
-      }
+        document.addEventListener('keydown', (e) => {
+          if (firstInteraction) {
+            goFullScreen();
+            firstInteraction = false;
+          }
+          const currentSlide = slides[currentIndex];
 
-      function toggleMenu() {
-        const isMenuHidden = songSelectorOverlay.classList.contains('hidden');
-        if (isMenuHidden) {
-            songSelectorOverlay.classList.remove('hidden');
-            body.classList.remove('hide-cursor');
-            if (currentSongIndex !== -1) {
-                initialLogoContainer.classList.add('hidden');
-            }
-            updateFocus(); 
-        } else {
-            songSelectorOverlay.classList.add('hidden');
-            body.classList.add('hide-cursor');
-            if (currentSongIndex === -1) {
-                initialLogoContainer.classList.remove('hidden');
-            } else {
-                initialLogoContainer.classList.add('hidden');
-            }
-        }
+          switch (e.key) {
+            case 'ArrowRight':
+              currentIndex = Math.min(currentIndex + 1, maxIndex);
+              renderSlide(currentIndex);
+              break;
+            case 'ArrowLeft':
+              currentIndex = Math.max(currentIndex - 1, 0);
+              renderSlide(currentIndex);
+              break;
+            case 'ArrowUp':
+              goFullScreen();
+              break;
+            case 'ArrowDown':
+              exitFullScreen();
+              break;
+            case 'Enter':
+              if (currentSlide.type === 'song') {
+                if (songAudio.paused) {
+                  songAudio.play();
+                  songVideo.play();
+                } else {
+                  songAudio.pause();
+                  songVideo.pause();
+                }
+              }
+              break;
+          }
+        });
+        
+        document.body.addEventListener('click', () => {
+          if (firstInteraction) {
+              goFullScreen();
+              firstInteraction = false;
+          }
+        });
+
+        renderSlide(currentIndex);
       }
 
-      function goToNextSong() {
-        if (songs.length === 0) return;
-        currentSongIndex = (currentSongIndex + 1) % songs.length;
-        selectSong(currentSongIndex);
-      }
-
-      function goToPreviousSong() {
-        if (songs.length === 0) return;
-        currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
-        selectSong(currentSongIndex);
-      }
-
-      document.addEventListener('keydown', (e) => {
-        // --- Teclas Globales (no cambian de contexto) ---
-        if (e.key === 'f' || e.key === 'F') { // Fullscreen (para PC)
-            e.preventDefault();
-            toggleFullscreen();
-            return;
-        }
-
-        // Mantener teclas de teclado por si acaso
-        if (e.key === 'o' || e.key === 'O') {
-          e.preventDefault();
-          toggleMenu();
-        }
-        if (e.key === 'e' || e.key === 'E') {
-          e.preventDefault();
-          showLobby();
-        }
-        if (e.key === 'm' || e.key === 'M') {
-          toggleMute();
-        }
-
-        // --- Teclas Contextuales de TV ---
-        const isMenuOpen = !songSelectorOverlay.classList.contains('hidden');
-        const isPlayerActive = currentSongIndex !== -1;
-        const isLobby = !isMenuOpen && !isPlayerActive;
-
-        if (isLobby) {
-            // === ESTAMOS EN EL LOBBY (LOGO) ===
-            switch (e.key) {
-                case 'Enter': // 'Enter' u 'OK'
-                    e.preventDefault();
-                    toggleMenu(); // Abre el menú de canciones
-                    break;
-                case 'Escape': // 'Back'
-                    if (document.fullscreenElement) {
-                        toggleFullscreen();
-                    }
-                    break;
-            }
-
-        } else if (isMenuOpen) {
-            // === EL MENÚ ESTÁ VISIBLE ===
-            switch (e.key) {
-                case 'ArrowUp':
-                    e.preventDefault();
-                    focusedSongIndex = (focusedSongIndex - 1 + songs.length) % songs.length;
-                    updateFocus();
-                    break;
-                case 'ArrowDown':
-                    e.preventDefault();
-                    focusedSongIndex = (focusedSongIndex + 1) % songs.length;
-                    updateFocus();
-                    break;
-                case 'Enter': // 'Enter' u 'OK'
-                    e.preventDefault();
-                    if (songs.length > 0) {
-                        selectSong(focusedSongIndex);
-                        songSelectorOverlay.classList.add('hidden');
-                        body.classList.add('hide-cursor');
-                        initialLogoContainer.classList.add('hidden');
-                    }
-                    break;
-                case 'Escape': // 'Back'
-                    e.preventDefault();
-                    toggleMenu(); // Cierra el menú y vuelve al lobby
-                    break;
-            }
-
-        } else if (isPlayerActive) {
-            // === EL REPRODUCTOR ESTÁ ACTIVO ===
-            switch (e.key) {
-                case 'p': case 'P': case ' ': // Teclas de PC
-                case 'Enter': // 'Enter' u 'OK'
-                    e.preventDefault();
-                    togglePlayPause();
-                    break;
-                case 'ArrowRight':
-                    goToNextSong();
-                    break;
-                case 'ArrowLeft':
-                    goToPreviousSong();
-                    break;
-                
-                // --- INICIO DE CAMBIOS ---
-                case 'ArrowUp':
-                    e.preventDefault();
-                    toggleFullscreen(); // Nueva función: Pantalla Completa
-                    break;
-                case 'ArrowDown':
-                    e.preventDefault();
-                    // Nueva lógica de volumen cíclico
-                    let currentVolume = audioPlayer.volume;
-                    if (currentVolume <= 0.05) { // Si está en 0 (o casi)
-                        audioPlayer.volume = 1.0; // "Reinicia" al máximo
-                    } else {
-                        // Reduce el volumen en pasos de 10%
-                        let newVolume = Math.max(0, currentVolume - 0.1);
-                        // Redondea para evitar errores de coma flotante (ej: 0.7999999)
-                        audioPlayer.volume = Math.round(newVolume * 10) / 10; 
-                    }
-                    break;
-                // --- FIN DE CAMBIOS ---
-
-                case 'Escape': // 'Back'
-                    e.preventDefault();
-                    showLobby(); // Vuelve al lobby
-                    break;
-            }
-        }
-      });
-
-      loadResources();
-
-      currentLine.classList.add('hidden');
-      nextLine.classList.add('hidden');
-      songSelectorOverlay.classList.add('hidden');
-      initialLogoContainer.classList.remove('hidden');
-      backgroundVideo.style.display = 'none';
+      initializeApp();
     });
-
-    document.addEventListener('fullscreenchange', () => {
-      if (document.fullscreenElement) {
-        document.body.setAttribute('data-fullscreen', 'true');
-      } else {
-        document.body.removeAttribute('data-fullscreen');
-      }
-    });
-
-    document.addEventListener('fullscreenerror', (event) => {
-      console.error('Error al intentar entrar en modo pantalla completa:', event);
-    });
-
   </script>
+
 </body>
 </html>
