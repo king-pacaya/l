@@ -39,7 +39,7 @@
       font-family: 'Moderat', sans-serif;
       font-weight: 400;
       font-style: normal;
-      user-select: none; /* Evita selección */
+      user-select: none;
     }
     :root {
       --green: #83DC5A;
@@ -49,9 +49,8 @@
       --extra-light-blue: #EDF5FF;
     }
     body {
-        cursor: none; /* Oculta el cursor */
+        cursor: none;
     }
-    /* Clase helper para ocultar elementos */
     .hidden {
         display: none;
     }
@@ -59,28 +58,20 @@
   <title>Tiempos | ibblaverdad</title>
 </head>
 <body class="bg-black">
-
   <div id="slider-container" class="h-screen w-screen bg-black">
-
     <div id="image-slide-container" class="h-full w-full flex items-center justify-center hidden">
       <img id="slider-image" src="" alt="Slider" class="max-h-full max-w-full object-contain">
     </div>
-
     <div id="song-slide-container" class="h-full w-full relative hidden">
-      
       <video id="song-video" class="absolute top-0 left-0 w-full h-full object-cover" loop muted playsinline></video>
       <audio id="song-audio"></audio>
-
       <div class="absolute top-0 left-0 w-full flex justify-center pt-8 z-10">
-        <p id="lyric-text" class="text-white text-4xl lg:text-5xl font-bold bg-black bg-opacity-70 px-6 py-3 rounded-lg text-center uppercase" style="text-shadow: 2px 2px 4px #000;"></p>
+        <p id="lyric-text" class="text-white text-4xl lg:text-5xl font-bold bg-black px-6 py-3 rounded-lg text-center uppercase"></p>
       </div>
     </div>
-
   </div>
-
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      
       const slides = [
         { type: 'image', src: 'multimedia/hola.png' },
         { type: 'image', src: 'multimedia/orar.png' },
@@ -100,25 +91,20 @@
         },
         { type: 'image', src: 'multimedia/bye.png' }
       ];
-
       const maxIndex = slides.length - 1;
       let currentIndex = 0;
       let firstInteraction = true;
       let currentLyricLine = null; 
-
       const imageSlideContainer = document.getElementById('image-slide-container');
       const sliderImage = document.getElementById('slider-image');
-      
       const songSlideContainer = document.getElementById('song-slide-container');
       const songVideo = document.getElementById('song-video');
       const songAudio = document.getElementById('song-audio');
       const lyricText = document.getElementById('lyric-text');
-
       function parseLyrics(text) {
         const lines = text.split('\n').slice(1);
         const lyrics = [];
         const regex = /\[(\d{2}):(\d{2})\.(\d{2})\](.*)/;
-
         for (const line of lines) {
           const match = line.match(regex);
           if (match) {
@@ -126,7 +112,6 @@
             const seconds = parseInt(match[2], 10);
             const hundredths = parseInt(match[3], 10);
             const text = match[4].trim();
-
             if (text) { 
               const time = (minutes * 60) + seconds + (hundredths / 100);
               lyrics.push({ time, text });
@@ -135,7 +120,6 @@
         }
         return lyrics;
       }
-
       async function loadAllLyrics() {
         const promises = slides.map((slide, index) => {
           if (slide.type === 'song') {
@@ -149,9 +133,7 @@
           return Promise.resolve();
         });
         await Promise.all(promises);
-        console.log("Todas las letras cargadas y parseadas.");
       }
-
       const bodyElement = document.documentElement;
       function goFullScreen() {
         if (document.fullscreenElement || document.webkitFullscreenElement) return;
@@ -167,43 +149,31 @@
         else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
         else if (document.msExitFullscreen) document.msExitFullscreen();
       }
-
       function renderSlide(index) {
         const slide = slides[index];
-
         songAudio.pause();
         songVideo.pause();
-        
         if (slide.type === 'image') {
           imageSlideContainer.classList.remove('hidden');
           songSlideContainer.classList.add('hidden');
           sliderImage.src = slide.src;
-
         } else if (slide.type === 'song') {
           songSlideContainer.classList.remove('hidden');
           imageSlideContainer.classList.add('hidden');
           songVideo.src = slide.video;
           songAudio.src = slide.mp3;
           songAudio.currentTime = 0; 
-          
-          // --- *** CAMBIO 2 (A): Ocultar el texto por defecto *** ---
-          lyricText.classList.add('hidden'); // Asegura que esté oculto al cambiar de slide
-          currentLyricLine = null; // Resetea el estado a "oculto"
-          
+          lyricText.classList.add('hidden');
+          currentLyricLine = null;
           songVideo.play();
           songAudio.play();
         }
       }
-
-      // --- *** CAMBIO 2 (B): Lógica modificada para ocultar/mostrar el <p> *** ---
       function updateLyrics() {
         const currentTime = songAudio.currentTime;
         const currentSlide = slides[currentIndex];
-        
         if (currentSlide.type !== 'song' || songAudio.paused) return;
-
         const lyrics = currentSlide.lyrics;
-        
         let activeLyric = null;
         for (let i = lyrics.length - 1; i >= 0; i--) {
           if (currentTime >= lyrics[i].time) {
@@ -211,43 +181,35 @@
             break;
           }
         }
-
         if (activeLyric) {
-          // REGLA DE 6 SEGUNDOS
           if (currentTime - activeLyric.time < 6.0) {
-            // Mostrar la letra
             if (currentLyricLine !== activeLyric.text) {
               lyricText.textContent = activeLyric.text;
-              lyricText.classList.remove('hidden'); // <-- MOSTRAR el elemento
+              lyricText.classList.remove('hidden');
               currentLyricLine = activeLyric.text;
             }
           } else {
-            // Pasaron más de 6s. Ocultar.
-            if (currentLyricLine !== null) { // Usamos 'null' para saber si está oculto
-              lyricText.classList.add('hidden'); // <-- OCULTAR el elemento
+            if (currentLyricLine !== null) {
+              lyricText.classList.add('hidden');
               currentLyricLine = null;
             }
           }
         } else {
-          // Aún no hay letra (inicio). Ocultar.
           if (currentLyricLine !== null) {
-            lyricText.classList.add('hidden'); // <-- OCULTAR el elemento
+            lyricText.classList.add('hidden');
             currentLyricLine = null;
           }
         }
       }
-
       async function initializeApp() {
         await loadAllLyrics();
         songAudio.addEventListener('timeupdate', updateLyrics);
-
         document.addEventListener('keydown', (e) => {
           if (firstInteraction) {
             goFullScreen();
             firstInteraction = false;
           }
           const currentSlide = slides[currentIndex];
-
           switch (e.key) {
             case 'ArrowRight':
               currentIndex = Math.min(currentIndex + 1, maxIndex);
@@ -276,20 +238,16 @@
               break;
           }
         });
-        
         document.body.addEventListener('click', () => {
           if (firstInteraction) {
               goFullScreen();
               firstInteraction = false;
           }
         });
-
         renderSlide(currentIndex);
       }
-
       initializeApp();
     });
   </script>
-
 </body>
 </html>
