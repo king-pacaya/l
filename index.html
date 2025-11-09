@@ -54,6 +54,10 @@
     .hidden {
         display: none;
     }
+    .zoomed-video {
+      transform: scale(1.1); /* Ajusta este valor para más o menos zoom */
+      transition: transform 0.2s ease-out;
+    }
   </style>
   <title>Tiempos | ibblaverdad</title>
 </head>
@@ -62,10 +66,11 @@
     <div id="image-slide-container" class="h-full w-full flex items-center justify-center hidden">
       <img id="slider-image" src="" alt="Slider" class="max-h-full max-w-full object-contain">
     </div>
-    <div id="song-slide-container" class="h-full w-full relative hidden">
+    
+    <div id="song-slide-container" class="h-full w-full relative hidden overflow-hidden">
       <video id="song-video" class="absolute top-0 left-0 w-full h-full object-cover" loop muted playsinline></video>
       <audio id="song-audio"></audio>
-      <div class="absolute inset-0 flex justify-center items-center z-10">
+      <div class="absolute inset-0 flex justify-center items-center z-10 px-16 lg:px-24">
         <p id="lyric-text" class="text-white text-5xl lg:text-6xl font-bold bg-black px-6 py-3 rounded-lg text-center uppercase"></p>
       </div>
     </div>
@@ -77,20 +82,20 @@
         { type: 'image', src: 'multimedia/orar.png' },
         {
           type: 'song',
-          mp3: 'multimedia/Yo tengo un amigo que me ama.mp3',
-          txt: 'multimedia/Yo tengo un amigo que me ama.txt',
-          video: 'multimedia/fondo2.mp4',
+          baseName: 'La biblia mi libro especial',
+          video: 'multimedia/fondo3.mp4',
           lyrics: []
         },
         {
           type: 'song',
-          mp3: 'multimedia/Mi amigo es Jesús.mp3',
-          txt: 'multimedia/Mi amigo es Jesús.txt',
-          video: 'multimedia/fondo1.mp4',
+          baseName: 'Grande y fuerte',
+          video: 'multimedia/fondo4.mp4', 
           lyrics: []
         },
-        { type: 'image', src: 'multimedia/bye.png' }
+        { type: 'image', src: 'multimedia/bye.png' },
+        { type: 'image', src: 'multimedia/final.png' }
       ];
+      
       const maxIndex = slides.length - 1;
       let currentIndex = 0;
       let firstInteraction = true;
@@ -101,6 +106,7 @@
       const songVideo = document.getElementById('song-video');
       const songAudio = document.getElementById('song-audio');
       const lyricText = document.getElementById('lyric-text');
+
       function parseLyrics(text) {
         const lines = text.split('\n').slice(1);
         const lyrics = [];
@@ -120,20 +126,23 @@
         }
         return lyrics;
       }
+
       async function loadAllLyrics() {
         const promises = slides.map((slide, index) => {
           if (slide.type === 'song') {
-            return fetch(slide.txt)
+            const txtPath = `multimedia/${slide.baseName}.txt`;
+            return fetch(txtPath)
               .then(response => response.text())
               .then(text => {
                 slides[index].lyrics = parseLyrics(text);
               })
-              .catch(err => console.error(`Error cargando letra: ${slide.txt}`, err));
+              .catch(err => console.error(`Error cargando letra: ${txtPath}`, err));
           }
           return Promise.resolve();
         });
         await Promise.all(promises);
       }
+
       const bodyElement = document.documentElement;
       function goFullScreen() {
         if (document.fullscreenElement || document.webkitFullscreenElement) return;
@@ -149,10 +158,14 @@
         else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
         else if (document.msExitFullscreen) document.msExitFullscreen();
       }
+
       function renderSlide(index) {
         const slide = slides[index];
         songAudio.pause();
         songVideo.pause();
+        
+        songVideo.classList.remove('zoomed-video');
+
         if (slide.type === 'image') {
           imageSlideContainer.classList.remove('hidden');
           songSlideContainer.classList.add('hidden');
@@ -161,14 +174,20 @@
           songSlideContainer.classList.remove('hidden');
           imageSlideContainer.classList.add('hidden');
           songVideo.src = slide.video;
-          songAudio.src = slide.mp3;
+          songAudio.src = `multimedia/${slide.baseName}.mp3`;
           songAudio.currentTime = 0; 
           lyricText.classList.add('hidden');
           currentLyricLine = null;
+
+          if (index === 3) { 
+            songVideo.classList.add('zoomed-video');
+          }
+
           songVideo.play();
           songAudio.play();
         }
       }
+
       function updateLyrics() {
         const currentTime = songAudio.currentTime;
         const currentSlide = slides[currentIndex];
@@ -201,9 +220,16 @@
           }
         }
       }
+
       async function initializeApp() {
         await loadAllLyrics();
         songAudio.addEventListener('timeupdate', updateLyrics);
+
+        songAudio.addEventListener('ended', () => {
+          lyricText.classList.add('hidden');
+          currentLyricLine = null;
+        });
+
         document.addEventListener('keydown', (e) => {
           if (firstInteraction) {
             goFullScreen();
