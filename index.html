@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="shortcut icon" href="multimedia/favicon.png">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
-  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/
-  normalize.min.css">
+  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
@@ -40,6 +39,7 @@
       font-weight: 400;
       font-style: normal;
       user-select: none;
+      box-sizing: border-box;
     }
     :root {
       --green: #83DC5A;
@@ -50,158 +50,210 @@
     }
     body {
         cursor: none;
+        background-color: black;
+        overflow: hidden; 
     }
     .hidden {
-        display: none;
+        display: none !important;
     }
-    .zoomed-video {
-      transform: scale(1.1); /* Ajusta este valor para más o menos zoom */
-      transition: transform 0.2s ease-out;
+    
+    #lyric-text {
+      /* Se eliminó text-shadow como solicitaste */
+      will-change: contents; 
+    }
+    
+    #loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: black;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 2rem;
+      z-index: 50;
     }
   </style>
   <title>Tiempos | ibblaverdad</title>
 </head>
 <body class="bg-black">
-  <div id="slider-container" class="h-screen w-screen bg-black">
+  
+  <div id="loading-screen">Cargando recursos...</div>
+
+  <div id="slider-container" class="h-screen w-screen bg-black relative">
     <div id="image-slide-container" class="h-full w-full flex items-center justify-center hidden">
       <img id="slider-image" src="" alt="Slider" class="max-h-full max-w-full object-contain">
     </div>
     
-    <div id="song-slide-container" class="h-full w-full relative hidden overflow-hidden">
-      <video id="song-video" class="absolute top-0 left-0 w-full h-full object-cover" loop muted playsinline></video>
-      <audio id="song-audio"></audio>
+    <div id="song-slide-container" class="h-full w-full relative hidden">
+      <video id="song-video" class="absolute top-0 left-0 w-full h-full object-cover" loop muted playsinline preload="auto"></video>
+      <audio id="song-audio" preload="auto"></audio>
+      
       <div class="absolute inset-0 flex justify-center items-center z-10 px-16 lg:px-24">
-        <p id="lyric-text" class="text-white text-5xl lg:text-6xl font-bold bg-black px-6 py-3 rounded-lg text-center uppercase"></p>
+        <p id="lyric-text" class="text-white text-5xl lg:text-6xl font-bold bg-black px-6 py-3 rounded-lg text-center uppercase transition-all duration-200"></p>
       </div>
     </div>
   </div>
+
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      // Configuración de Slides (con final.png agregado)
       const slides = [
         { type: 'image', src: 'multimedia/hola.png' },
-        { type: 'image', src: 'multimedia/orar.png' },
         {
           type: 'song',
-          baseName: 'La biblia mi libro especial',
-          video: 'multimedia/fondo3.mp4',
+          mp3: 'multimedia/Yo le alabo.mp3',
+          txt: 'multimedia/Yo le alabo.txt',
+          video: 'multimedia/fondo5.mp4',
           lyrics: []
         },
         {
           type: 'song',
-          baseName: 'Grande y fuerte',
-          video: 'multimedia/fondo4.mp4', 
+          mp3: 'multimedia/Jesús es mi salvador.mp3',
+          txt: 'multimedia/Jesús es mi salvador.txt',
+          video: 'multimedia/fondo6.mp4',
           lyrics: []
         },
         { type: 'image', src: 'multimedia/bye.png' },
-        { type: 'image', src: 'multimedia/final.png' }
+        { type: 'image', src: 'multimedia/final.png' } // AGREGADO
       ];
-      
+
+      // Esto se calcula solo, ahora maxIndex será 4
       const maxIndex = slides.length - 1;
       let currentIndex = 0;
       let firstInteraction = true;
       let currentLyricLine = null; 
+      
       const imageSlideContainer = document.getElementById('image-slide-container');
       const sliderImage = document.getElementById('slider-image');
       const songSlideContainer = document.getElementById('song-slide-container');
       const songVideo = document.getElementById('song-video');
       const songAudio = document.getElementById('song-audio');
       const lyricText = document.getElementById('lyric-text');
+      const loadingScreen = document.getElementById('loading-screen');
+      const bodyElement = document.documentElement;
 
       function parseLyrics(text) {
+        if (!text) return [];
         const lines = text.split('\n').slice(1);
         const lyrics = [];
         const regex = /\[(\d{2}):(\d{2})\.(\d{2})\](.*)/;
+        
         for (const line of lines) {
           const match = line.match(regex);
           if (match) {
             const minutes = parseInt(match[1], 10);
             const seconds = parseInt(match[2], 10);
             const hundredths = parseInt(match[3], 10);
-            const text = match[4].trim();
-            if (text) { 
+            const textContent = match[4].trim();
+            
+            if (textContent) { 
               const time = (minutes * 60) + seconds + (hundredths / 100);
-              lyrics.push({ time, text });
+              lyrics.push({ time, text: textContent });
             }
           }
         }
         return lyrics;
       }
 
-      async function loadAllLyrics() {
-        const promises = slides.map((slide, index) => {
+      async function loadAllResources() {
+        const promises = slides.map(async (slide, index) => {
           if (slide.type === 'song') {
-            const txtPath = `multimedia/${slide.baseName}.txt`;
-            return fetch(txtPath)
-              .then(response => response.text())
-              .then(text => {
-                slides[index].lyrics = parseLyrics(text);
-              })
-              .catch(err => console.error(`Error cargando letra: ${txtPath}`, err));
+            try {
+              const safeTxtUrl = encodeURI(slide.txt);
+              const response = await fetch(safeTxtUrl);
+              if (!response.ok) throw new Error(`No se encontró ${safeTxtUrl}`);
+              const text = await response.text();
+              slides[index].lyrics = parseLyrics(text);
+              
+              const tempAudio = new Audio();
+              tempAudio.src = encodeURI(slide.mp3);
+              tempAudio.preload = 'metadata'; 
+
+            } catch (err) {
+              console.error(`Error cargando recurso (revise nombre de archivo): ${slide.txt}`, err);
+              slides[index].lyrics = [{time: 0, text: ""}]; 
+            }
+          } else if (slide.type === 'image') {
+             const img = new Image();
+             img.src = encodeURI(slide.src);
           }
-          return Promise.resolve();
         });
+
         await Promise.all(promises);
       }
 
-      const bodyElement = document.documentElement;
       function goFullScreen() {
-        if (document.fullscreenElement || document.webkitFullscreenElement) return;
-        if (bodyElement.requestFullscreen) bodyElement.requestFullscreen();
-        else if (bodyElement.mozRequestFullScreen) bodyElement.mozRequestFullScreen();
-        else if (bodyElement.webkitRequestFullscreen) bodyElement.webkitRequestFullscreen();
-        else if (bodyElement.msRequestFullscreen) bodyElement.msRequestFullscreen();
+        if (document.fullscreenElement) return;
+        if (bodyElement.requestFullscreen) bodyElement.requestFullscreen().catch(err => console.log(err));
       }
+
       function exitFullScreen() {
-        if (!document.fullscreenElement || !document.webkitFullscreenElement) return;
+        if (!document.fullscreenElement) return;
         if (document.exitFullscreen) document.exitFullscreen();
-        else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
-        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-        else if (document.msExitFullscreen) document.msExitFullscreen();
       }
 
       function renderSlide(index) {
         const slide = slides[index];
+        
         songAudio.pause();
         songVideo.pause();
-        
-        songVideo.classList.remove('zoomed-video');
 
         if (slide.type === 'image') {
           imageSlideContainer.classList.remove('hidden');
           songSlideContainer.classList.add('hidden');
-          sliderImage.src = slide.src;
+          sliderImage.src = encodeURI(slide.src);
         } else if (slide.type === 'song') {
           songSlideContainer.classList.remove('hidden');
           imageSlideContainer.classList.add('hidden');
-          songVideo.src = slide.video;
-          songAudio.src = `multimedia/${slide.baseName}.mp3`;
-          songAudio.currentTime = 0; 
+          
+          songVideo.src = encodeURI(slide.video);
+          songAudio.src = encodeURI(slide.mp3);
+          songAudio.currentTime = 0;
+          
           lyricText.classList.add('hidden');
+          lyricText.textContent = "";
           currentLyricLine = null;
-
-          if (index === 3) { 
-            songVideo.classList.add('zoomed-video');
+          
+          const playVideoPromise = songVideo.play();
+          if (playVideoPromise !== undefined) {
+            playVideoPromise.catch(error => {
+                console.log("Auto-play video prevenido", error);
+            });
           }
 
-          songVideo.play();
-          songAudio.play();
+          const playAudioPromise = songAudio.play();
+          if (playAudioPromise !== undefined) {
+            playAudioPromise.catch(error => {
+                console.log("Auto-play audio prevenido", error);
+            });
+          }
         }
       }
 
       function updateLyrics() {
+        if (songAudio.paused) return;
+
         const currentTime = songAudio.currentTime;
         const currentSlide = slides[currentIndex];
-        if (currentSlide.type !== 'song' || songAudio.paused) return;
+
+        if (currentSlide.type !== 'song' || !currentSlide.lyrics.length) return;
+        
         const lyrics = currentSlide.lyrics;
         let activeLyric = null;
+
         for (let i = lyrics.length - 1; i >= 0; i--) {
           if (currentTime >= lyrics[i].time) {
             activeLyric = lyrics[i];
             break;
           }
         }
+
         if (activeLyric) {
-          if (currentTime - activeLyric.time < 6.0) {
+          if (currentTime - activeLyric.time < 7.0) {
             if (currentLyricLine !== activeLyric.text) {
               lyricText.textContent = activeLyric.text;
               lyricText.classList.remove('hidden');
@@ -222,56 +274,69 @@
       }
 
       async function initializeApp() {
-        await loadAllLyrics();
-        songAudio.addEventListener('timeupdate', updateLyrics);
+        try {
+            await loadAllResources();
+            loadingScreen.classList.add('hidden');
+            
+            songAudio.addEventListener('timeupdate', updateLyrics);
+            
+            songAudio.addEventListener('ended', () => {
+              lyricText.classList.add('hidden');
+              currentLyricLine = null;
+            });
 
-        songAudio.addEventListener('ended', () => {
-          lyricText.classList.add('hidden');
-          currentLyricLine = null;
-        });
-
-        document.addEventListener('keydown', (e) => {
-          if (firstInteraction) {
-            goFullScreen();
-            firstInteraction = false;
-          }
-          const currentSlide = slides[currentIndex];
-          switch (e.key) {
-            case 'ArrowRight':
-              currentIndex = Math.min(currentIndex + 1, maxIndex);
-              renderSlide(currentIndex);
-              break;
-            case 'ArrowLeft':
-              currentIndex = Math.max(currentIndex - 1, 0);
-              renderSlide(currentIndex);
-              break;
-            case 'ArrowUp':
-              goFullScreen();
-              break;
-            case 'ArrowDown':
-              exitFullScreen();
-              break;
-            case 'Enter':
-              if (currentSlide.type === 'song') {
-                if (songAudio.paused) {
-                  songAudio.play();
-                  songVideo.play();
-                } else {
-                  songAudio.pause();
-                  songVideo.pause();
-                }
+            document.addEventListener('keydown', (e) => {
+              if (firstInteraction) {
+                goFullScreen();
+                firstInteraction = false;
               }
-              break;
-          }
-        });
-        document.body.addEventListener('click', () => {
-          if (firstInteraction) {
-              goFullScreen();
-              firstInteraction = false;
-          }
-        });
-        renderSlide(currentIndex);
+              
+              const currentSlide = slides[currentIndex];
+              
+              switch (e.key) {
+                case 'ArrowRight':
+                  currentIndex = Math.min(currentIndex + 1, maxIndex);
+                  renderSlide(currentIndex);
+                  break;
+                case 'ArrowLeft':
+                  currentIndex = Math.max(currentIndex - 1, 0);
+                  renderSlide(currentIndex);
+                  break;
+                case 'ArrowUp':
+                  goFullScreen();
+                  break;
+                case 'ArrowDown':
+                  exitFullScreen();
+                  break;
+                case 'Enter':
+                  if (currentSlide.type === 'song') {
+                    if (songAudio.paused) {
+                      songAudio.play();
+                      songVideo.play();
+                    } else {
+                      songAudio.pause();
+                      songVideo.pause();
+                    }
+                  }
+                  break;
+              }
+            });
+
+            document.body.addEventListener('click', () => {
+              if (firstInteraction) {
+                  goFullScreen();
+                  firstInteraction = false;
+              }
+            });
+
+            renderSlide(currentIndex);
+
+        } catch (e) {
+            console.error("Error fatal iniciando la app", e);
+            loadingScreen.innerText = "Error. Revisa consola (F12).";
+        }
       }
+
       initializeApp();
     });
   </script>
