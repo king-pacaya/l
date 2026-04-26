@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Niños La Verdad</title>
+  <link rel="icon" type="image/png" href="multimedia/favicon.png">
+  <link rel="shortcut icon" type="image/png" href="multimedia/favicon.png">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+  
+  <style>
+    body {
+        background-color: black;
+        overflow: hidden; 
+        cursor: none; 
+        font-family: 'Montserrat', sans-serif;
+    }
+    
+    * {
+      font-family: 'Montserrat', sans-serif !important;
+      user-select: none;
+    }
+
+    .lyrics-layer {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+    }
+
+    #lyric-text {
+      background-color: transparent; 
+      color: white;
+      font-size: 3.8vw; 
+      max-width: 90%; 
+      text-align: center;
+      line-height: 1.3; 
+    }
+
+    .lyric-box {
+      background-color: black;
+      display: inline-block; 
+      padding: 0.6vw 1.8vw;
+      border-radius: 0.4vw;
+      margin-bottom: 0.6vw; 
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    
+    #loading-screen {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: black; color: white;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      z-index: 100;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  
+  <div id="loading-screen">
+    <div class="text-4xl mb-4 text-[#17D038]"><i class="fas fa-circle-notch fa-spin"></i></div>
+    <div id="loading-text" class="text-xl">Cargando...</div>
+  </div>
+
+  <div id="main-container" class="relative w-screen h-screen bg-black">
+    
+    <div id="image-slide" class="w-full h-full flex items-center justify-center hidden">
+      <img id="slider-img-element" src="" class="max-h-full max-w-full object-contain">
+    </div>
+    
+    <div id="song-slide" class="w-full h-full relative hidden">
+      <video id="bg-video" class="absolute top-0 left-0 w-full h-full object-cover" loop muted playsinline></video>
+      <audio id="main-audio"></audio>
+      <div class="lyrics-layer">
+        <div id="lyric-text" class="hidden"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // --- CONFIGURACIÓN ---
+      const coverSlide = { type: 'image', src: 'multimedia/cover.png' };
+
+      const slides = [
+        coverSlide, 
+        { type: 'song', fileName: 'Jesus es el camino', video: 'multimedia/fondo23.mp4' },
+        { type: 'song', fileName: 'Canto de Alabanza', video: 'multimedia/fondo11.mp4' },
+        { type: 'image', src: 'multimedia/salon1.png' },
+        { type: 'image', src: 'multimedia/salon2.png' },
+        { type: 'image', src: 'multimedia/salon3.png' },
+        { type: 'image', src: 'multimedia/salon4.png' },
+        coverSlide
+      ];
+
+      const trenAudio = new Audio('multimedia/El Tren de la Salvacion.mp3');
+      trenAudio.loop = true;
+
+      let currentIndex = 0;
+      let gameLoopId = null; 
+      let currentLyricText = ""; 
+      let audioUnlocked = false;
+
+      // DOM
+      const loadingScreen = document.getElementById('loading-screen');
+      const imageSlide = document.getElementById('image-slide');
+      const imgElement = document.getElementById('slider-img-element');
+      const songSlide = document.getElementById('song-slide');
+      const bgVideo = document.getElementById('bg-video');
+      const mainAudio = document.getElementById('main-audio');
+      const lyricDiv = document.getElementById('lyric-text');
+
+      // --- FUNCIONES CORE ---
+      function parseLyrics(text) {
+        if (!text) return [];
+        return text.split('\n').map(line => {
+          const match = line.match(/\[(\d{1,2}):(\d{1,2})\.(\d{1,2})\]/);
+          if (!match) return null;
+          const time = parseInt(match[1]) * 60 + parseInt(match[2]) + parseInt(match[3]) / 100;
+          const content = line.replace(/\[.*?\]/g, '').trim();
+          const html = content.split('/').map(p => `<div class="lyric-box">${p.trim()}</div>`).join('<br>');
+          return { time, html };
+        }).filter(l => l && l.html);
+      }
+
+      async function preloadData() {
+        // Pre-render de imágenes
+        slides.forEach(s => { if(s.type === 'image') new Image().src = s.src; });
+
+        // Cargar letras
+        for (const slide of slides) {
+          if (slide.type === 'song') {
+            slide.mp3 = `multimedia/${slide.fileName}.mp3`;
+            const local = localStorage.getItem(slide.fileName);
+            if (local) {
+              slide.lyrics = parseLyrics(local);
+            } else {
+              try {
+                const res = await fetch(`multimedia/${slide.fileName}.txt`);
+                if (res.ok) slide.lyrics = parseLyrics(await res.text());
+              } catch (e) {}
+            }
+          }
+        }
+      }
+
+      function updateLyrics() {
+        if (slides[currentIndex].type !== 'song' || !slides[currentIndex].lyrics) return;
+        const time = mainAudio.currentTime;
+        const active = slides[currentIndex].lyrics.reduce((prev, curr) => (time >= curr.time ? curr : prev), null);
+        
+        if (active && (time - active.time < 8.0)) {
+          if (currentLyricText !== active.html) {
+            currentLyricText = active.html;
+            lyricDiv.innerHTML = active.html;
+            lyricDiv.classList.remove('hidden');
+          }
+        } else {
+          lyricDiv.classList.add('hidden');
+          currentLyricText = "";
+        }
+      }
+
+      function renderSlide(index) {
+        if (gameLoopId) cancelAnimationFrame(gameLoopId);
+        const slide = slides[index];
+
+        // Reset general
+        [mainAudio, bgVideo, trenAudio].forEach(a => a.pause());
+        [imageSlide, songSlide].forEach(s => s.classList.add('hidden'));
+
+        if (slide.type === 'image') {
+          imageSlide.classList.remove('hidden');
+          imgElement.src = slide.src;
+          if (slide.src.includes('salon')) trenAudio.play().catch(() => {});
+        } 
+        else if (slide.type === 'song') {
+          songSlide.classList.remove('hidden');
+          lyricDiv.classList.add('hidden');
+          currentLyricText = "";
+          if (bgVideo.src !== slide.video) bgVideo.src = slide.video;
+          mainAudio.src = slide.mp3;
+          bgVideo.play().catch(() => {});
+          mainAudio.play().then(() => {
+            const loop = () => { updateLyrics(); gameLoopId = requestAnimationFrame(loop); };
+            loop();
+          }).catch(() => {});
+        }
+      }
+
+      // --- CONTROLES (TV Remote) ---
+      document.addEventListener('keydown', (e) => {
+        if (!audioUnlocked) {
+          mainAudio.play().catch(() => {});
+          mainAudio.pause();
+          audioUnlocked = true;
+        }
+
+        if (e.key === 'ArrowUp') {
+          if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+          else document.exitFullscreen();
+        } else if (e.key === 'ArrowRight') {
+          currentIndex = Math.min(currentIndex + 1, slides.length - 1);
+          renderSlide(currentIndex);
+        } else if (e.key === 'ArrowLeft') {
+          currentIndex = Math.max(currentIndex - 1, 0);
+          renderSlide(currentIndex);
+        } else if (e.key === 'Enter') {
+          const slide = slides[currentIndex];
+          if (slide.type === 'song') {
+            mainAudio.paused ? (mainAudio.play(), bgVideo.play()) : (mainAudio.pause(), bgVideo.pause());
+          }
+        }
+      });
+
+      // Inicialización
+      preloadData().then(() => {
+        loadingScreen.classList.add('hidden');
+        renderSlide(currentIndex);
+      });
+    });
+  </script>
+</body>
+</html>
